@@ -59,9 +59,11 @@ def get_operator_benchmarks() -> Dict[str, Any]:
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", default="nightly", help="Benchmark name.")
+    parser.add_argument("--op", help="Operator name.")
     parser.add_argument(
         "--ci", action="store_true", help="Running in GitHub Actions CI mode."
     )
+    parser.add_argument("--use-profiler", action="store_true", help="Use profiler to measure latency.")
     parser.add_argument(
         "--log-scuba", action="store_true", help="Upload results to Scuba."
     )
@@ -74,10 +76,14 @@ def run():
     # Run each operator
     output_files = []
     operator_benchmarks = get_operator_benchmarks()
+    if args.op:
+        operator_benchmarks = {args.op: operator_benchmarks[args.op]}
     for op_bench in operator_benchmarks:
         op_args = operator_benchmarks[op_bench]
         output_file = output_dir.joinpath(f"{op_bench}.json")
         op_args.extend(["--output-json", str(output_file.absolute())])
+        if args.use_profiler:
+            op_args.extend(["--latency-measure-mode=profiler"])
         run_in_task(op_args=op_args, benchmark_name=op_bench)
         # write pass or fail to result json
         # todo: check every input shape has passed
